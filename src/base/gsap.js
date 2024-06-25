@@ -3,7 +3,6 @@ import * as Three from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 import gsap from 'gsap'
-import * as dat from 'dat.gui'
 
 // 创建场景
 const scene = new Three.Scene()
@@ -27,15 +26,6 @@ const cube = new Three.Mesh(cubeGeometry, cubeMaterial)
 cube.rotation.set(Math.PI / 4, Math.PI / 4, 0, 'XYZ')
 scene.add(cube)
 
-const gui = new dat.GUI()
-gui
-  .add(cube.position, 'x', -10, 10, 0.1)
-  .name('x轴')
-  .onChange(() => {
-    console.log('onChange')
-  })
-gui.add(cube.position, 'y', -10, 10, 0.1).name('y轴')
-gui.addColor(cubeMaterial, 'color').name('颜色')
 // 初始化渲染器
 const renderer = new Three.WebGLRenderer()
 renderer.setSize(window.innerWidth, window.innerHeight)
