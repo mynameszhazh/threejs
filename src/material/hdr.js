@@ -36,7 +36,7 @@ const envMapTexture = new THREE.CubeTextureLoader().load([
 
 const cubeGeometry = new THREE.SphereGeometry(1, 20, 20)
 const basicMaterial = new THREE.MeshStandardMaterial({
-  // color: 0xffff00,
+  color: 0xffff00,
   // map: actorColorTextTrue,
   // 一些地方透明, 一些地方全遮挡
   // alphaMap: actorAplhaTextTrue,
@@ -44,8 +44,8 @@ const basicMaterial = new THREE.MeshStandardMaterial({
   // aoMap: actorColorTextTrue,
   // transparent: true,
   // opacity: 0.5,
-  metalness: 0.7,
-  roughness: 0.1,
+  // metalness: 0.7,
+  // roughness: 0.1,
   envMap: envMapTexture
   //  side: THREE.DoubleSide
 })
@@ -56,6 +56,7 @@ scene.add(cube)
 // const light = new THREE.AmbientLight(0xffffff, 0.5)
 const light = new THREE.DirectionalLight(0xffffff, 0.5)
 light.position.set(10, 10, 10)
+light.castShadow = true
 scene.add(light)
 
 // 初始化渲染器
