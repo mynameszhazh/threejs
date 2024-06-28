@@ -89,7 +89,7 @@ const floorBody = new CANNON.Body();
 const floorMaterial = new CANNON.Material("floor");
 floorBody.material = floorMaterial;
 // 当质量为0的时候，可以使得物体保持不动
-floorBody.mass = 0e;
+floorBody.mass = 0;
 floorBody.addShape(floorShape);
 // 地面位置
 floorBody.position.set(0, -5, 0);
