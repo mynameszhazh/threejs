@@ -11,7 +11,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 // 目标：认识shader
 
 //创建gui对象
-// const gui = new dat.GUI()
+const gui = new dat.GUI()
 
 // console.log(THREE);
 // 初始化场景
