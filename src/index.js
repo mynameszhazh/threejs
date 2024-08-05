@@ -1,188 +1,176 @@
 import * as THREE from "three";
-
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import gsap from "gsap";
-import * as dat from "dat.gui";
-import vertexShader from "./example/firework/shaders/flylight/vertex.glsl";
-import fragmentShader from "./example/firework/shaders/flylight/fragment.glsl";
-import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import {
+  CSS2DRenderer,
+  CSS2DObject,
+} from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
-import Fireworks from "./example/firework/firework.js";
-
-// 导入水模块
-import { Water } from "three/examples/jsm/objects/Water2";
-
-// 目标：认识shader
-
-//创建gui对象
-const gui = new dat.GUI();
-
-// console.log(THREE);
-// 初始化场景
-const scene = new THREE.Scene();
-
-// 创建透视相机
-const camera = new THREE.PerspectiveCamera(
-  90,
-  window.innerHeight / window.innerHeight,
-  0.1,
-  1000
-);
-// 设置相机位置
-// object3d具有position，属性是1个3维的向量
-camera.position.set(0, 0, 20);
-// 更新摄像头
-camera.aspect = window.innerWidth / window.innerHeight;
-//   更新摄像机的投影矩阵
-camera.updateProjectionMatrix();
-scene.add(camera);
-
-// 加入辅助轴，帮助我们查看3维坐标轴
-// const axesHelper = new THREE.AxesHelper(5);
-// scene.add(axesHelper);
-
-// 加载纹理
-
-// 创建纹理加载器对象
-const rgbeLoader = new RGBELoader();
-rgbeLoader.loadAsync("./assets/2k.hdr").then((texture) => {
-  texture.mapping = THREE.EquirectangularReflectionMapping;
-  scene.background = texture;
-  scene.environment = texture;
-});
-
-// 创建着色器材质;
-const shaderMaterial = new THREE.ShaderMaterial({
-  vertexShader: vertexShader,
-  fragmentShader: fragmentShader,
-  uniforms: {},
-  side: THREE.DoubleSide,
-  //   transparent: true,
-});
-
-// 初始化渲染器
-const renderer = new THREE.WebGLRenderer({ alpha: true });
-// renderer.shadowMap.enabled = true;
-// renderer.shadowMap.type = THREE.BasicShadowMap;
-// renderer.shadowMap.type = THREE.VSMShadowMap;
-renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-// renderer.toneMapping = THREE.LinearToneMapping;
-// renderer.toneMapping = THREE.ReinhardToneMapping;
-// renderer.toneMapping = THREE.CineonToneMapping;
-renderer.toneMappingExposure = 0.1;
-
-const gltfLoader = new GLTFLoader();
-let LightBox = null;
-gltfLoader.load("./assets/model/newyears_min.glb", (gltf) => {
-  console.log(gltf);
-  scene.add(gltf.scene);
-
-  //   创建水面
-  const waterGeometry = new THREE.PlaneBufferGeometry(100, 100);
-  let water = new Water(waterGeometry, {
-    scale: 4,
-    textureHeight: 1024,
-    textureWidth: 1024,
-  });
-  water.position.y = 1;
-  water.rotation.x = -Math.PI / 2;
-  scene.add(water);
-});
-
-gltfLoader.load("./assets/model/flyLight.glb", (gltf) => {
-  console.log(gltf);
-
-  LightBox = gltf.scene.children[0];
-  LightBox.material = shaderMaterial;
-
-  for (let i = 0; i < 150; i++) {
-    let flyLight = gltf.scene.clone(true);
-    let x = (Math.random() - 0.5) * 300;
-    let z = (Math.random() - 0.5) * 300;
-    let y = Math.random() * 60 + 5;
-    flyLight.position.set(x, y, z);
-    gsap.to(flyLight.rotation, {
-      y: 2 * Math.PI,
-      duration: 10 + Math.random() * 30,
-      repeat: -1,
-    });
-    gsap.to(flyLight.position, {
-      x: "+=" + Math.random() * 5,
-      y: "+=" + Math.random() * 20,
-      yoyo: true,
-      duration: 5 + Math.random() * 10,
-      repeat: -1,
-    });
-    scene.add(flyLight);
-  }
-});
-
-// 设置渲染尺寸大小
-renderer.setSize(window.innerWidth, window.innerHeight);
-
-// 监听屏幕大小改变的变化，设置渲染的尺寸
-window.addEventListener("resize", () => {
-  //   console.log("resize");
-  // 更新摄像头
-  camera.aspect = window.innerWidth / window.innerHeight;
-  //   更新摄像机的投影矩阵
-  camera.updateProjectionMatrix();
-
-  //   更新渲染器
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  //   设置渲染器的像素比例
-  renderer.setPixelRatio(window.devicePixelRatio);
-});
-
-// 将渲染器添加到body
-document.body.appendChild(renderer.domElement);
-
-// 初始化控制器
-const controls = new OrbitControls(camera, renderer.domElement);
-// 设置控制器阻尼
-controls.enableDamping = true;
-// 设置自动旋转
-controls.autoRotate = true;
-controls.autoRotateSpeed = 0.1;
-// controls.maxPolarAngle = (Math.PI / 3) * 2;
-// controls.minPolarAngle = (Math.PI / 3) * 2;
+let camera, scene, renderer, labelRenderer;
 
 const clock = new THREE.Clock();
-// 管理烟花
-let fireworks = [];
-function animate(t) {
-  controls.update();
-  const elapsedTime = clock.getElapsedTime();
-  //   console.log(fireworks);
-  fireworks.forEach((item, i) => {
-    const type = item.update();
-    if (type == "remove") {
-      fireworks.splice(i, 1);
-    }
-  });
+const textureLoader = new THREE.TextureLoader();
 
-  requestAnimationFrame(animate);
-  // 使用渲染器渲染相机看这个场景的内容渲染出来
-  renderer.render(scene, camera);
-}
-
+let moon;
+let chinaPosition;
+let chinaLabel;
+let chinaDiv;
+const raycaster = new THREE.Raycaster();
+init();
 animate();
 
-// 设置创建烟花函数
-let createFireworks = () => {
-  let color = `hsl(${Math.floor(Math.random() * 360)},100%,80%)`;
-  let position = {
-    x: (Math.random() - 0.5) * 40,
-    z: -(Math.random() - 0.5) * 40,
-    y: 3 + Math.random() * 15,
-  };
 
-  // 随机生成颜色和烟花放的位置
-  let firework = new Fireworks(color, position);
-  firework.addScene(scene, camera);
-  fireworks.push(firework);
-};
-// 监听点击事件
-window.addEventListener("click", createFireworks);
+// 创建射线
+
+function init() {
+  const EARTH_RADIUS = 1;
+  const MOON_RADIUS = 0.27;
+
+  camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    200
+  );
+  camera.position.set(0, 5, -10);
+
+  scene = new THREE.Scene();
+
+  const dirLight = new THREE.DirectionalLight(0xffffff);
+  dirLight.position.set(0, 0, 1);
+  scene.add(dirLight);
+  const light = new THREE.AmbientLight(0xffffff, 0.5); // soft white light
+  scene.add(light);
+
+  // const axesHelper = new THREE.AxesHelper( 5 );
+  // scene.add( axesHelper );
+
+  //
+
+  const earthGeometry = new THREE.SphereGeometry(EARTH_RADIUS, 16, 16);
+  const earthMaterial = new THREE.MeshPhongMaterial({
+    specular: 0x333333,
+    shininess: 5,
+    map: textureLoader.load("textures/planets/earth_atmos_2048.jpg"),
+    specularMap: textureLoader.load("textures/planets/earth_specular_2048.jpg"),
+    normalMap: textureLoader.load("textures/planets/earth_normal_2048.jpg"),
+    normalScale: new THREE.Vector2(0.85, 0.85),
+  });
+
+  const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+  // earth.rotation.y = Math.PI;
+  scene.add(earth);
+
+  const moonGeometry = new THREE.SphereGeometry(MOON_RADIUS, 16, 16);
+  const moonMaterial = new THREE.MeshPhongMaterial({
+    shininess: 5,
+    map: textureLoader.load("textures/planets/moon_1024.jpg"),
+  });
+  moon = new THREE.Mesh(moonGeometry, moonMaterial);
+  scene.add(moon);
+
+  // 添加提示标签
+  const earthDiv = document.createElement('div');
+  earthDiv.className = "label";
+  earthDiv.innerHTML = "地球";
+  const earthLabel = new CSS2DObject(earthDiv);
+  earthLabel.position.set(0,1,0);
+  earth.add(earthLabel);
+
+  // 中国
+  const chinaDiv = document.createElement('div');
+  chinaDiv.className = "label1";
+  chinaDiv.innerHTML = "中国";
+  chinaLabel = new CSS2DObject(chinaDiv);
+  chinaLabel.position.set(-0.3,0.5,-0.9);
+  earth.add(chinaLabel);
+  console.log(chinaLabel)
+
+  const moonDiv = document.createElement('div');
+  moonDiv.className = "label";
+  moonDiv.innerHTML = "月球";
+  const moonLabel = new CSS2DObject(moonDiv);
+  moonLabel.position.set(0,0.3,0);
+  moon.add(moonLabel);
+
+
+  // 实例化css2d的渲染器
+  labelRenderer = new CSS2DRenderer();
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(labelRenderer.domElement)
+  labelRenderer.domElement.style.position = 'fixed';
+  labelRenderer.domElement.style.top = '0px';
+  labelRenderer.domElement.style.left = '0px';
+  labelRenderer.domElement.style.zIndex = '10';
+
+
+  
+
+  renderer = new THREE.WebGLRenderer();
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  
+
+  const controls = new OrbitControls(camera, labelRenderer.domElement);
+  controls.minDistance = 5;
+  controls.maxDistance = 100;
+
+  //
+
+  window.addEventListener("resize", onWindowResize);
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// // 实例化射线
+// const raycaster = new THREE.Raycaster()
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  const elapsed = clock.getElapsedTime();
+
+  moon.position.set(Math.sin(elapsed) * 5, 0, Math.cos(elapsed) * 5);
+
+  const chinaPosition = chinaLabel.position.clone();
+  // 计算出标签跟摄像机的距离
+  const labelDistance = chinaPosition.distanceTo(camera.position);
+  // 检测射线的碰撞
+  // chinaLabel.position
+  // 向量(坐标)从世界空间投影到相机的标准化设备坐标 (NDC) 空间。
+  chinaPosition.project(camera);
+  raycaster.setFromCamera(chinaPosition,camera);
+
+  const intersects = raycaster.intersectObjects(scene.children,true)
+  // console.log(intersects)
+  
+  // 如果没有碰撞到任何物体，那么让标签显示
+  if(intersects.length == 0){
+    chinaLabel.element.classList.add('visible');
+    
+  }else{
+    // if(labelDistance)
+    const minDistance = intersects[0].distance;
+    console.log(minDistance,labelDistance)
+    if(minDistance<labelDistance){
+      chinaLabel.element.classList.remove('visible');
+    }else{
+      chinaLabel.element.classList.add('visible');
+    }
+    
+  }
+  
+
+  // 标签渲染器渲染
+  labelRenderer.render(scene,camera);
+
+  renderer.render(scene, camera);
+}
